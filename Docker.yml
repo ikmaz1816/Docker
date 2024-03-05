@@ -1,0 +1,290 @@
+Docker
+It provides an isolated environment to run application called as container
+Packaging , shipping of application
+
+Why docker?
+When there are multiple versions of running applications then we can have different isolated environment
+with different versions
+One application can be in python 3.1
+Other application can be in python 2.7
+
+So with this we can create an isolated environment where all the dependencies can be packaged!
+This package can be sent to different teams where they only need docker to run the application 
+
+Containers?
+Containers are basically used to provide isolation of a particular application with its dependencies.
+
+Docker architecture
+Hardware-> OS -> Docker engine-> Container 
+Hardware can be cloud based!
+
+Container contains the application please all the dependencies.
+We can have multiple containers as well!
+
+Docker vs Virtualization
+Docker requires less space and there is less impact on OS
+With Virtualization there is more impact on OS and it is very low compared to docker 
+
+Sharing is easy in case of docker!
+
+Main components of Docker
+Docker file
+Docker image
+Docker containers
+Docker registry
+
+Docker file 
+It is the file which contains the base image , port information and also the commands to execute
+
+Docker image
+With docker file we create docker file and create docker containers 
+
+Docker containers
+Contains running applications
+
+Docker Registry 
+It is an online registry for storing online docker images!
+From here we can pull or push images!
+It has many repository for example openjdk:11 openjdk:12
+
+Installation of Docker
+Install docker desktop -> which acts as a daemon
+	Enable virtualization in bios 
+	if hypervisor not found take command from stackoverflow
+	install windows subsystem for linux wsl --install and wsl --update
+	Start the docker engine!
+	
+Create a docker file -> name should be Dockerfile
+
+FROM baseimage
+# this image is present in the docker registry
+
+WORKDIR /application
+# this specifies the folder to be created in our container 
+
+COPY target/.jar /application
+#with this I copy my target jar to application for execution 
+
+CMD ["java","-jar",".jar file"]
+#So when you run the container this commands are executed 
+
+EXPOSE 8080
+#Expose the container to 8080 port but there is no host binding for local machine 
+
+Some important docker commands
+docker run image-name
+#to run a image
+
+docker images
+#to get the list of images present in our current local machine
+
+docker pull image-name
+#to download the docker image from docker registry
+
+docker ps
+# process state-> to see list of running containers
+
+docker ps -a
+# to get list of previous running containers 
+
+docker stop image-name or imageid-> removes from docker ps
+#to stop container 
+
+#to remove results of docker ps -a
+use 
+docker rm containerId
+
+#to remove image 
+docker rmi imageId 
+
+#to start a container (by default interative)
+docker run image-name
+
+#to start a container in detached mode
+docker run -d image-name 
+
+#with port 
+# -p 8080:80 8080-> local machine port 80->container port
+docker run -d -p 8080:80 image-name 
+
+#to build a image 
+docker build -t image-name:version(any that you want) .(path where docker file is)
+
+# to remove containers from ps and ps -a when the container is stopped use
+docker run -p 8080:80 -d --rm image-name
+
+#to give name to a container
+docker run --name "myfirstapp"
+if you don't specify name it uses default name!
+
+#to pull a docker image
+docker pull image-name 
+
+Whenever there is an update in a project then build one more image with a new version 
+with which it would be easy for us to rollback if there is an issue
+
+To run a docker image in interactive mode
+docker run -it python --name "MyPython"
+To exit interactive mode press ctrl+P and then ctrl+Q
+
+#to check logs 
+docker logs image-name 
+#to get information about container-name (Ip address,Adapter etc)
+docker inspect image-name 
+
+#images in docker ps -a can be restared using 
+docker start image-name 
+
+With the docker basic plan we can have multiple public repository
+but can have only one private repository
+docker login 
+#Command used for signing in using terminal
+docker logout -> to logout 
+
+docker pull image-name 
+docker push image-name 
+#the name is same as that of the repository
+#if tagname not given then it considers it as latest
+#Whenever name is given image-name:tagname, tagname is used for versions
+
+how to bind storage in docker file 
+Example:- there is a file in which we are storing data and the data is permanent 
+but with docker once it is containerized the data stored will only be available till execution 
+to make it permanent we can mount data on our container 
+
+	docker run -it -p 8080:8080 --rm -v myvolume:/app/ image-name 
+
+with this the data would be persisted even after execution of program 
+docker volume --help
+to get list of commands
+
+docker volume ls 
+gives list of volumes present locally
+docker file is stored in container 
+and docker volume is stored outside container in writeable layer
+
+bind mount(mounting some file)
+I have a file in which there is dyanmic data which is updated time to time 
+So we bind the host machine file storage to docker port volume 
+So any change in local file changes will be made to the container file 
+
+FROM base-image
+WORKDIR /app
+COPY target/.jar .
+COPY server.txt /app/
+CMD ["java","-jar","target/.jar"]
+
+docker run --name "myvolume" -d -v ./demo/application/server.txt:/app/server.txt -p 8080:8080 --rm myApp
+									absolutePathInLocalStorage:pathincontainer
+
+When I run 
+	docker volume ls 
+	no volumes will be there as I have mounted on on physical storage
+Basic usage is for frequent changes of code !
+
+.dockerignore 
+When we want to ignore certain files while creating docker image 
+Create a new .dockerignore file 
+Add the name of the file that you don't want to add in our container 
+
+Interacting with different containers or API
+We can add API call in our program as well
+We have a spring boot application that is connected to a mysql-database
+Now we need to dockerize this spring boot application!
+
+####################################Deploying Spring boot Mysql##############################
+
+First we need to create a docker network 
+docker network create network-name 
+
+#to run a background process 
+docker exec -it containername 
+
+#mysql image 
+docker run --name mysqldb -d --network network-name --rm -e MYSQL_ROOT_PASSWORD:"admin" -e 
+MYSQL_DATABASE:"project" mysql # image name from docker registry
+
+#to run 
+docker exec -it mysqldb(container-name) mysql -u root -p 
+enter password:
+
+Create the docker file for spring boot application
+docker build -t myapp .
+
+docker run --network spring-mysql -d --name myapp --rm myapp
+
+######This is how you install the spring boot application with docker network###################
+
+Docker Compose
+#the name has to be docker-compose.yml 
+#docker compose has its own network created by default but there is no constraint we can create
+#our own and use it!
+version: 1
+services:
+	mysqldb:
+		image: 'mysql'
+		container_name: "mysqldb"
+		environment:
+			- MYSQL_ROOT_PASSWORD: admin
+			- MYSQL_DATABASE: project	
+		network:
+			- my-network(will create for us)
+		volumes:
+			./server.txt:/app/server.txt 
+		healthcheck:
+			test: ['CMD','mysqladmin','ping','-h','localhost']
+			timeout: 20s
+			tries: 10
+	myapp:
+		build: .(if in the same file or provide relative path)
+		ports:
+			- 8080:8080
+		container_name: "myapp"
+		network:
+			- my-network 
+		depends_on:
+			mysqldb:
+				condition: service_healthy
+
+networks:
+	my-network:
+
+#to run a docker compose file 
+docker-compose up -> to run all containers
+
+#for specific container 
+docker-compose up mysqldb 
+
+#to stop a container in use and volumes as well 
+ 
+docker-compose down -v -> remove all volumes and all related data 
+#for stopping the container 
+docker-compose down 
+
+docker-compose images
+docker-compose ps -a 
+docker-compose 
+#to remove images 
+docker-compose down --rmi image-name or id
+				
+		
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
